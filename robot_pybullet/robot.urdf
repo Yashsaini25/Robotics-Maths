@@ -1,0 +1,144 @@
+<?xml version="1.0"?>
+<robot name="three_dof_robot">
+
+  <!-- ========================= -->
+  <!-- BASE                      -->
+  <!-- ========================= -->
+
+  <link name="base">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="meshes/Base.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </visual>
+
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="meshes/Base.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </collision>
+  </link>
+
+
+  <!-- ========================= -->
+  <!-- BASE LINK                 -->
+  <!-- ========================= -->
+
+  <link name="base_link">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="meshes/Base_Link.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </visual>
+
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="meshes/Base_Link.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </collision>
+  </link>
+
+
+  <!-- J1: Base rotation -->
+  <joint name="joint1" type="revolute">
+    <parent link="base"/>
+    <child link="base_link"/>
+
+    <!-- PLACEHOLDER: actual J1 position -->
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+
+    <!-- PLACEHOLDER: verify actual axis -->
+    <axis xyz="0 0 1"/>
+
+    <limit
+      lower="-3.14159"
+      upper="3.14159"
+      effort="10"
+      velocity="2"/>
+  </joint>
+
+
+  <!-- ========================= -->
+  <!-- LINKER                    -->
+  <!-- ========================= -->
+
+  <link name="linker">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="meshes/Linker.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </visual>
+
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="meshes/Linker.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </collision>
+  </link>
+
+
+  <!-- J2: Shoulder/elbow pitch -->
+  <joint name="joint2" type="revolute">
+    <parent link="base_link"/>
+    <child link="linker"/>
+
+    <!-- PLACEHOLDER: actual J2 position -->
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+
+    <!-- PLACEHOLDER: verify actual axis -->
+    <axis xyz="0 1 0"/>
+
+    <limit
+      lower="-3.14159"
+      upper="3.14159"
+      effort="10"
+      velocity="2"/>
+  </joint>
+
+
+  <!-- ========================= -->
+  <!-- GRIPPER                   -->
+  <!-- ========================= -->
+
+  <link name="gripper">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="meshes/Gripper.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </visual>
+
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="meshes/Gripper.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </collision>
+  </link>
+
+
+  <!-- J3: Wrist/gripper rotation -->
+  <joint name="joint3" type="revolute">
+    <parent link="linker"/>
+    <child link="gripper"/>
+
+    <!-- PLACEHOLDER: actual J3 position -->
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+
+    <!-- PLACEHOLDER: verify actual axis -->
+    <axis xyz="0 1 0"/>
+
+    <limit
+      lower="-3.14159"
+      upper="3.14159"
+      effort="10"
+      velocity="2"/>
+  </joint>
+
+</robot>
