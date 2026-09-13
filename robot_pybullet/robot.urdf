@@ -1,144 +1,290 @@
 <?xml version="1.0"?>
-<robot name="three_dof_robot">
+<!--
+  FINAL VERSION-1 URDF (FIXED LINK-FRAME PLACEMENT)
+  3-DOF CAD-aligned robotic arm
 
-  <!-- ========================= -->
-  <!-- BASE                      -->
-  <!-- ========================= -->
+  CAD reference:
+    - Base, Base Link, Linker, and Gripper mesh frames come from the
+      Fusion 360 component frames verified during extraction.
+    - Gripper 2.0 is modeled as ONE rigid link.
+    - The internal gripper mechanism is intentionally not modeled as
+      additional DOFs in Version 1.
+
+  Important:
+    - STL coordinates are in millimetres, so every mesh uses scale 0.001.
+    - Joint q=0 corresponds to the CAD assembly pose used during export.
+    - Joint rpy is zero because the URDF joint frame is aligned with the
+      parent link frame; the physical CAD mesh orientation is represented
+      by each child link's visual/collision origin.
+    - Inertial values are simple positive simulation values, NOT measured
+      physical masses/inertias.
+-->
+
+<robot name="cad_aligned_3dof_robot">
+
+  <!-- ========================================================= -->
+  <!-- BASE                                                       -->
+  <!-- ========================================================= -->
 
   <link name="base">
+
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0"/>
       <geometry>
-        <mesh filename="meshes/Base.stl" scale="0.001 0.001 0.001"/>
+        <mesh filename="meshes/Base.stl"
+              scale="0.001 0.001 0.001"/>
       </geometry>
     </visual>
 
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0"/>
       <geometry>
-        <mesh filename="meshes/Base.stl" scale="0.001 0.001 0.001"/>
+        <mesh filename="meshes/Base.stl"
+              scale="0.001 0.001 0.001"/>
       </geometry>
     </collision>
+
+    <!-- Simulation-only inertial placeholder -->
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="1.0"/>
+      <inertia
+        ixx="0.01"
+        ixy="0"
+        ixz="0"
+        iyy="0.01"
+        iyz="0"
+        izz="0.01"/>
+    </inertial>
+
   </link>
 
 
-  <!-- ========================= -->
-  <!-- BASE LINK                 -->
-  <!-- ========================= -->
+  <!-- ========================================================= -->
+  <!-- J1: BASE -> BASE LINK                                     -->
+  <!-- ========================================================= -->
 
-  <link name="base_link">
-    <visual>
-      <origin xyz="0 0 0" rpy="0 0 0"/>
-      <geometry>
-        <mesh filename="meshes/Base_Link.stl" scale="0.001 0.001 0.001"/>
-      </geometry>
-    </visual>
+  <joint name="joint1_base_rotation"
+         type="revolute">
 
-    <collision>
-      <origin xyz="0 0 0" rpy="0 0 0"/>
-      <geometry>
-        <mesh filename="meshes/Base_Link.stl" scale="0.001 0.001 0.001"/>
-      </geometry>
-    </collision>
-  </link>
-
-
-  <!-- J1: Base rotation -->
-  <joint name="joint1" type="revolute">
     <parent link="base"/>
     <child link="base_link"/>
 
-    <!-- PLACEHOLDER: actual J1 position -->
-    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <!-- J1 axis location from Fusion CAD -->
+    <origin
+      xyz="0 0 0.110000"
+      rpy="0 0 0"/>
 
-    <!-- PLACEHOLDER: verify actual axis -->
+    <!-- J1 axis expressed in the parent/base frame -->
     <axis xyz="0 0 1"/>
 
     <limit
-      lower="-3.14159"
-      upper="3.14159"
-      effort="10"
-      velocity="2"/>
+      lower="-3.14159265359"
+      upper="3.14159265359"
+      effort="1.0"
+      velocity="2.0"/>
+
+    <dynamics
+      damping="0.02"
+      friction="0.01"/>
+
   </joint>
 
 
-  <!-- ========================= -->
-  <!-- LINKER                    -->
-  <!-- ========================= -->
+  <!-- ========================================================= -->
+  <!-- BASE LINK                                                  -->
+  <!--                                                             -->
+  <!-- The Base Link STL is expressed in its Fusion component     -->
+  <!-- frame. At q=0 the component frame is rotated 102.392883 deg -->
+  <!-- about Z relative to the parent/base frame.                  -->
+  <!-- ========================================================= -->
 
-  <link name="linker">
+  <link name="base_link">
+
     <visual>
-      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 1.7870929414"/>
       <geometry>
-        <mesh filename="meshes/Linker.stl" scale="0.001 0.001 0.001"/>
+        <mesh filename="meshes/Base_Link.stl"
+              scale="0.001 0.001 0.001"/>
       </geometry>
     </visual>
 
     <collision>
-      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 1.7870929414"/>
       <geometry>
-        <mesh filename="meshes/Linker.stl" scale="0.001 0.001 0.001"/>
+        <mesh filename="meshes/Base_Link.stl"
+              scale="0.001 0.001 0.001"/>
       </geometry>
     </collision>
+
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="0.20"/>
+      <inertia
+        ixx="0.001"
+        ixy="0"
+        ixz="0"
+        iyy="0.001"
+        iyz="0"
+        izz="0.001"/>
+    </inertial>
+
   </link>
 
 
-  <!-- J2: Shoulder/elbow pitch -->
-  <joint name="joint2" type="revolute">
+  <!-- ========================================================= -->
+  <!-- J2: BASE LINK -> LINKER                                   -->
+  <!-- ========================================================= -->
+
+  <joint name="joint2_shoulder"
+         type="revolute">
+
     <parent link="base_link"/>
     <child link="linker"/>
 
-    <!-- PLACEHOLDER: actual J2 position -->
-    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <!-- Fusion joint position relative to Base Link frame -->
+    <origin
+      xyz="0.00011040219 0.04143331674 0.04768605725"
+      rpy="0 0 0"/>
 
-    <!-- PLACEHOLDER: verify actual axis -->
-    <axis xyz="0 1 0"/>
+    <!-- Physical J2 axis in Base Link frame -->
+    <axis xyz="0.976698944 0.214614011 0"/>
 
     <limit
-      lower="-3.14159"
-      upper="3.14159"
-      effort="10"
-      velocity="2"/>
+      lower="-3.14159265359"
+      upper="3.14159265359"
+      effort="1.0"
+      velocity="2.0"/>
+
+    <dynamics
+      damping="0.02"
+      friction="0.01"/>
+
   </joint>
 
 
-  <!-- ========================= -->
-  <!-- GRIPPER                   -->
-  <!-- ========================= -->
+  <!-- ========================================================= -->
+  <!-- LINKER                                                     -->
+  <!--                                                             -->
+  <!-- Linker CAD component frame is 4 mm from the J2 joint frame -->
+  <!-- along the J2 joint-frame Y direction and has the measured   -->
+  <!-- CAD orientation.                                           -->
+  <!-- ========================================================= -->
 
-  <link name="gripper">
+  <link name="linker">
+
     <visual>
-      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <origin
+        xyz="-0.00390679619 -0.00085845574 -0.00000000025"
+        rpy="1.570796325632 -1.311577250248 1.787092943060"/>
       <geometry>
-        <mesh filename="meshes/Gripper.stl" scale="0.001 0.001 0.001"/>
+        <mesh filename="meshes/Linker.stl"
+              scale="0.001 0.001 0.001"/>
       </geometry>
     </visual>
 
     <collision>
-      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <origin
+        xyz="-0.00390679619 -0.00085845574 -0.00000000025"
+        rpy="1.570796325632 -1.311577250248 1.787092943060"/>
       <geometry>
-        <mesh filename="meshes/Gripper.stl" scale="0.001 0.001 0.001"/>
+        <mesh filename="meshes/Linker.stl"
+              scale="0.001 0.001 0.001"/>
       </geometry>
     </collision>
+
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="0.15"/>
+      <inertia
+        ixx="0.001"
+        ixy="0"
+        ixz="0"
+        iyy="0.001"
+        iyz="0"
+        izz="0.001"/>
+    </inertial>
+
   </link>
 
 
-  <!-- J3: Wrist/gripper rotation -->
-  <joint name="joint3" type="revolute">
+  <!-- ========================================================= -->
+  <!-- J3: LINKER -> GRIPPER                                     -->
+  <!-- ========================================================= -->
+
+  <joint name="joint3_wrist"
+         type="revolute">
+
     <parent link="linker"/>
     <child link="gripper"/>
 
-    <!-- PLACEHOLDER: actual J3 position -->
-    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <!-- Fusion J3 position relative to Linker frame -->
+    <origin
+      xyz="0.02489326226 -0.11328814381 0.03075909567"
+      rpy="0 0 0"/>
 
-    <!-- PLACEHOLDER: verify actual axis -->
-    <axis xyz="0 1 0"/>
+    <!-- Physical J3 axis in Linker frame -->
+    <axis xyz="-0.976698944 -0.214614011 0"/>
 
     <limit
-      lower="-3.14159"
-      upper="3.14159"
-      effort="10"
-      velocity="2"/>
+      lower="-3.14159265359"
+      upper="3.14159265359"
+      effort="1.0"
+      velocity="2.0"/>
+
+    <dynamics
+      damping="0.02"
+      friction="0.01"/>
+
   </joint>
+
+
+  <!-- ========================================================= -->
+  <!-- GRIPPER 2.0                                                -->
+  <!--                                                             -->
+  <!-- The complete Gripper 2.0 assembly is represented by ONE    -->
+  <!-- rigid STL mesh. Its Fusion root frame was verified against  -->
+  <!-- the exported STL.                                          -->
+  <!-- ========================================================= -->
+
+  <link name="gripper">
+
+    <visual>
+      <origin
+        xyz="-0.00967198545 -0.03246477993 0.01810763308"
+        rpy="-1.162247579905 -0.000000000088 0.216296615274"/>
+      <geometry>
+        <mesh filename="meshes/Gripper.stl"
+              scale="0.001 0.001 0.001"/>
+      </geometry>
+    </visual>
+
+    <collision>
+      <origin
+        xyz="-0.00967198545 -0.03246477993 0.01810763308"
+        rpy="-1.162247579905 -0.000000000088 0.216296615274"/>
+      <geometry>
+        <mesh filename="meshes/Gripper.stl"
+              scale="0.001 0.001 0.001"/>
+      </geometry>
+    </collision>
+
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="0.15"/>
+      <inertia
+        ixx="0.001"
+        ixy="0"
+        ixz="0"
+        iyy="0.001"
+        iyz="0"
+        izz="0.001"/>
+    </inertial>
+
+  </link>
 
 </robot>
