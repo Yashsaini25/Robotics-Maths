@@ -123,6 +123,44 @@ p.resetDebugVisualizerCamera(
 )
 
 
+def set_camera(view):
+    if view == 1:
+        # Front
+        p.resetDebugVisualizerCamera(
+            cameraDistance=0.6,
+            cameraYaw=90,
+            cameraPitch=-10,
+            cameraTargetPosition=[0, 0, 0.15]
+        )
+
+    elif view == 2:
+        # Side
+        p.resetDebugVisualizerCamera(
+            cameraDistance=0.6,
+            cameraYaw=0,
+            cameraPitch=-10,
+            cameraTargetPosition=[0, 0, 0.15]
+        )
+
+    elif view == 3:
+        # Top
+        p.resetDebugVisualizerCamera(
+            cameraDistance=0.6,
+            cameraYaw=90,
+            cameraPitch=-89,
+            cameraTargetPosition=[0, 0, 0.15]
+        )
+
+    elif view == 4:
+        # Isometric
+        p.resetDebugVisualizerCamera(
+            cameraDistance=0.65,
+            cameraYaw=45,
+            cameraPitch=-30,
+            cameraTargetPosition=[0, 0, 0.15]
+        )
+
+
 # ============================================================
 # RUN SIMULATION
 # ============================================================
@@ -142,6 +180,20 @@ try:
         p.stepSimulation()
 
         time.sleep(1.0 / 240.0)
+
+        keys = p.getKeyboardEvents()
+
+        if ord('1') in keys:
+            set_camera(1)
+
+        if ord('2') in keys:
+            set_camera(2)
+
+        if ord('3') in keys:
+            set_camera(3)
+
+        if ord('4') in keys:
+            set_camera(4)
 
 
 except KeyboardInterrupt:
