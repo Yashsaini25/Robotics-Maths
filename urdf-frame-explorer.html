@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>URDF Frame Explorer</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#12151a; --panel:#1b1f27; --panel-2:#20242d; --border:#2b303b;
+    --ink:#e9e7e1; --muted:#8b93a1; --amber:#d9a441; --teal:#4fb3a9; --violet:#a08ce0;
+    --red:#e5484d; --green:#4cc38a; --blue:#4098f0;
+    font-family:"Space Grotesk",system-ui,sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);overflow:hidden;}
+  #app{display:flex;height:100vh;width:100vw;}
+  #viewport{flex:1 1 auto;position:relative;min-width:0;}
+  #viewport canvas{display:block;width:100%;height:100%;}
+  #legend{
+    position:absolute;left:16px;top:16px;background:rgba(18,21,26,0.72);
+    border:1px solid var(--border);border-radius:6px;padding:10px 14px;
+    font-size:12px;color:var(--muted);line-height:1.7;pointer-events:none;
+  }
+  #legend b{color:var(--ink);font-weight:600;}
+  #legend .sw{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:6px;}
+  #hint{
+    position:absolute;left:16px;bottom:16px;font-size:12px;color:var(--muted);
+    background:rgba(18,21,26,0.72);border:1px solid var(--border);border-radius:6px;
+    padding:8px 12px;pointer-events:none;max-width:300px;line-height:1.5;
+  }
+  #panel{
+    width:380px;flex:0 0 380px;background:var(--panel);border-left:1px solid var(--border);
+    overflow-y:auto;padding:20px 18px 40px;
+  }
+  #panel h1{font-size:16px;margin:0 0 4px;font-weight:700;letter-spacing:0.01em;}
+  #panel .sub{font-size:12px;color:var(--muted);margin:0 0 18px;line-height:1.5;}
+  .presets{display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;}
+  button{
+    font-family:inherit;font-size:12px;font-weight:600;background:var(--panel-2);
+    color:var(--ink);border:1px solid var(--border);border-radius:6px;padding:8px 10px;
+    cursor:pointer;transition:border-color .15s ease;
+  }
+  button:hover{border-color:var(--amber);}
+  button.primary{background:var(--amber);color:#1b1300;border-color:var(--amber);}
+  button.primary:hover{filter:brightness(1.08);}
+  .block{border:1px solid var(--border);border-radius:8px;margin-bottom:14px;overflow:hidden;}
+  .block-head{
+    display:flex;align-items:center;justify-content:space-between;padding:10px 12px;
+    background:var(--panel-2);cursor:pointer;user-select:none;
+  }
+  .block-head .tag{
+    font-family:"JetBrains Mono",monospace;font-size:11px;font-weight:600;
+    padding:2px 7px;border-radius:4px;
+  }
+  .j1 .tag{background:rgba(217,164,65,0.16);color:var(--amber);}
+  .j2 .tag{background:rgba(79,179,169,0.16);color:var(--teal);}
+  .m1 .tag, .m2 .tag{background:rgba(160,140,224,0.16);color:var(--violet);}
+  .block-body{padding:12px 12px 4px;}
+  .block-body.collapsed{display:none;}
+  .chev{font-size:11px;color:var(--muted);}
+  .group-label{font-size:11px;color:var(--muted);margin:10px 0 6px;font-weight:600;}
+  .row{display:flex;align-items:center;gap:8px;margin-bottom:7px;}
+  .row label{width:14px;font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--muted);flex:0 0 14px;}
+  .row input[type=range]{flex:1 1 auto;}
+  .j1 input[type=range], .m1 input[type=range]{accent-color:var(--amber);}
+  .j2 input[type=range], .m2 input[type=range]{accent-color:var(--teal);}
+  .row .val{
+    width:62px;flex:0 0 62px;font-family:"JetBrains Mono",monospace;font-size:11px;
+    text-align:right;color:var(--ink);
+  }
+  .axis-presets{display:flex;gap:6px;margin:2px 0 10px;}
+  .axis-presets button{flex:1;padding:5px 0;font-size:10px;}
+  .readout{
+    margin-top:6px;padding:10px 12px;background:var(--panel-2);border-radius:6px;
+    font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--muted);line-height:1.8;
+  }
+  .readout b{color:var(--ink);}
+  hr{border:none;border-top:1px solid var(--border);margin:16px 0;}
+  #panel::-webkit-scrollbar{width:8px;}
+  #panel::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px;}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="viewport">
+    <div id="legend">
+      <div><span class="sw" style="background:var(--red)"></span>X axis</div>
+      <div><span class="sw" style="background:var(--green)"></span>Y axis</div>
+      <div><span class="sw" style="background:var(--blue)"></span>Z axis</div>
+      <div><span class="sw" style="background:var(--amber)"></span>joint rotation axis</div>
+      <div><span class="sw" style="background:var(--violet)"></span>mesh box + its own origin</div>
+      <div style="margin-top:4px;">grid square = <b>2 cm</b></div>
+    </div>
+    <div id="hint">Drag to orbit &middot; scroll to zoom<br>Violet dashed line = the visual/collision origin offset from the link frame to where the mesh actually sits.</div>
+  </div>
+  <div id="panel">
+    <h1>URDF Frame Explorer</h1>
+    <p class="sub">Two joints define where each <b>link frame</b> sits (amber/teal axes). Each link's mesh then sits at a small offset from that frame &mdash; the visual/collision <code>&lt;origin&gt;</code> &mdash; shown as a violet box.</p>
+    <div class="presets">
+      <button id="btnZero">Reset to zero</button>
+      <button id="btnMine" class="primary">Load my arm's real numbers</button>
+    </div>
+
+    <div class="block j1">
+      <div class="block-head"><span>Joint 1 &mdash; base → link B <span class="chev">(joint2_shoulder)</span></span><span class="tag">joint1</span></div>
+      <div class="block-body" id="j1body"></div>
+    </div>
+
+    <div class="block m1">
+      <div class="block-head"><span>Link B mesh offset <span class="chev">(linker)</span></span><span class="tag">visual origin</span></div>
+      <div class="block-body" id="m1body"></div>
+    </div>
+
+    <div class="block j2">
+      <div class="block-head"><span>Joint 2 &mdash; link B → link C <span class="chev">(joint3_wrist)</span></span><span class="tag">joint2</span></div>
+      <div class="block-body" id="j2body"></div>
+    </div>
+
+    <div class="block m2">
+      <div class="block-head"><span>Link C mesh offset <span class="chev">(gripper)</span></span><span class="tag">visual origin</span></div>
+      <div class="block-body" id="m2body"></div>
+    </div>
+
+    <div class="readout" id="readout">computing…</div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+/* ---------- state ---------- */
+const state = {
+  j1:  { ox:0, oy:0, oz:0, r:0, p:0, y:0, ax:0, ay:0, az:1, angle:0 },
+  m1:  { ox:0, oy:0, oz:0, r:0, p:0, y:0 },
+  j2:  { ox:0, oy:0, oz:0, r:0, p:0, y:0, ax:0, ay:0, az:1, angle:0 },
+  m2:  { ox:0, oy:0, oz:0, r:0, p:0, y:0 }
+};
+
+/* real numbers from the user's URDF: joint2_shoulder, linker visual origin, joint3_wrist, gripper visual origin */
+const MINE = {
+  j1: { ox:0.00011, oy:0.04143, oz:0.04769, r:0, p:0, y:0, ax:0.9767, ay:0.2146, az:0, angle:0 },
+  m1: { ox:-0.00391, oy:-0.00086, oz:0, r:90, p:-75.148, y:102.393 },
+  j2: { ox:0.02489, oy:-0.11329, oz:0.03076, r:0, p:0, y:0, ax:-0.9767, ay:-0.2146, az:0, angle:0 },
+  m2: { ox:-0.00967, oy:-0.03246, oz:0.01811, r:-66.592, p:0, y:12.393 }
+};
+const ZERO = {
+  j1:{ox:0,oy:0,oz:0,r:0,p:0,y:0,ax:0,ay:0,az:1,angle:0},
+  m1:{ox:0,oy:0,oz:0,r:0,p:0,y:0},
+  j2:{ox:0,oy:0,oz:0,r:0,p:0,y:0,ax:0,ay:0,az:1,angle:0},
+  m2:{ox:0,oy:0,oz:0,r:0,p:0,y:0}
+};
+
+function fmt(field, v){
+  if(field==='ax'||field==='ay'||field==='az') return v.toFixed(2);
+  if(field==='r'||field==='p'||field==='y'||field==='angle') return v.toFixed(1);
+  return v.toFixed(4);
+}
+
+/* ---------- generic slider row ---------- */
+function addRow(container, key, field, label, min, max, step){
+  const row = document.createElement('div'); row.className='row';
+  const lab = document.createElement('label'); lab.textContent=label;
+  const input = document.createElement('input');
+  input.type='range'; input.min=min; input.max=max; input.step=step; input.value=state[key][field];
+  const val = document.createElement('span'); val.className='val'; val.textContent=fmt(field,state[key][field]);
+  input.addEventListener('input', ()=>{
+    state[key][field]=parseFloat(input.value);
+    val.textContent=fmt(field,state[key][field]);
+  });
+  row.appendChild(lab); row.appendChild(input); row.appendChild(val);
+  container.appendChild(row);
+  state[key]['_el_'+field]=input; state[key]['_val_'+field]=val;
+}
+function addGroupLabel(container, text){
+  const g=document.createElement('div'); g.className='group-label'; g.textContent=text;
+  container.appendChild(g);
+}
+
+function buildJointControls(container, key){
+  addGroupLabel(container,'origin (m)');
+  addRow(container,key,'ox','X',-0.15,0.15,0.001);
+  addRow(container,key,'oy','Y',-0.15,0.15,0.001);
+  addRow(container,key,'oz','Z',-0.15,0.15,0.001);
+  addGroupLabel(container,'rpy (deg)');
+  addRow(container,key,'r','R',-180,180,1);
+  addRow(container,key,'p','P',-180,180,1);
+  addRow(container,key,'y','Y',-180,180,1);
+  addGroupLabel(container,'axis (unit vector)');
+  addRow(container,key,'ax','X',-1,1,0.01);
+  addRow(container,key,'ay','Y',-1,1,0.01);
+  addRow(container,key,'az','Z',-1,1,0.01);
+  const presets = document.createElement('div'); presets.className='axis-presets';
+  [['X',1,0,0],['Y',0,1,0],['Z',0,0,1]].forEach(([lbl,x,y,z])=>{
+    const b=document.createElement('button'); b.textContent=lbl+' axis';
+    b.addEventListener('click',()=>setAxis(key,x,y,z));
+    presets.appendChild(b);
+  });
+  container.appendChild(presets);
+  addGroupLabel(container,'joint angle (deg) — turns the joint');
+  addRow(container,key,'angle','θ',-180,180,1);
+}
+
+function buildMeshControls(container, key){
+  addGroupLabel(container,'mesh offset (m) — visual/collision origin xyz');
+  addRow(container,key,'ox','X',-0.05,0.05,0.0005);
+  addRow(container,key,'oy','Y',-0.05,0.05,0.0005);
+  addRow(container,key,'oz','Z',-0.05,0.05,0.0005);
+  addGroupLabel(container,'mesh rotation (deg) — visual/collision origin rpy');
+  addRow(container,key,'r','R',-180,180,1);
+  addRow(container,key,'p','P',-180,180,1);
+  addRow(container,key,'y','Y',-180,180,1);
+}
+
+function setAxis(key,x,y,z){
+  state[key].ax=x; state[key].ay=y; state[key].az=z;
+  ['ax','ay','az'].forEach((f,i)=>{
+    const v=[x,y,z][i];
+    state[key]['_el_'+f].value=v; state[key]['_val_'+f].textContent=fmt(f,v);
+  });
+}
+
+function applyPreset(preset){
+  Object.keys(preset).forEach(key=>{
+    Object.keys(preset[key]).forEach(field=>{
+      state[key][field]=preset[key][field];
+      const el = state[key]['_el_'+field];
+      const val = state[key]['_val_'+field];
+      if(el) el.value=preset[key][field];
+      if(val) val.textContent=fmt(field, preset[key][field]);
+    });
+  });
+}
+
+buildJointControls(document.getElementById('j1body'),'j1');
+buildMeshControls(document.getElementById('m1body'),'m1');
+buildJointControls(document.getElementById('j2body'),'j2');
+buildMeshControls(document.getElementById('m2body'),'m2');
+
+document.getElementById('btnZero').addEventListener('click',()=>applyPreset(ZERO));
+document.getElementById('btnMine').addEventListener('click',()=>applyPreset(MINE));
+
+document.querySelectorAll('.block-head').forEach(h=>{
+  h.addEventListener('click', ()=>{
+    const body = h.nextElementSibling;
+    body.classList.toggle('collapsed');
+  });
+});
+
+/* ---------- three.js scene ---------- */
+const viewport = document.getElementById('viewport');
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x12151a);
+const camera = new THREE.PerspectiveCamera(45, 1, 0.001, 100);
+const renderer = new THREE.WebGLRenderer({antialias:true});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+viewport.appendChild(renderer.domElement);
+
+function resize(){
+  const w = viewport.clientWidth, h = viewport.clientHeight;
+  renderer.setSize(w,h);
+  camera.aspect = w/h;
+  camera.updateProjectionMatrix();
+}
+window.addEventListener('resize', resize);
+
+scene.add(new THREE.AmbientLight(0xffffff, 0.65));
+const dl = new THREE.DirectionalLight(0xffffff, 0.6);
+dl.position.set(0.3,0.5,0.4);
+scene.add(dl);
+
+const grid = new THREE.GridHelper(0.4, 20, 0x3a4150, 0x262b34);
+scene.add(grid);
+
+/* custom orbit camera */
+let camDist=0.45, camAz=0.9, camEl=0.55;
+const target = new THREE.Vector3(0,0.05,0);
+function updateCamera(){
+  camera.position.set(
+    target.x + camDist*Math.sin(camAz)*Math.cos(camEl),
+    target.y + camDist*Math.sin(camEl),
+    target.z + camDist*Math.cos(camAz)*Math.cos(camEl)
+  );
+  camera.lookAt(target);
+}
+let dragging=false, lastX=0, lastY=0;
+renderer.domElement.addEventListener('mousedown', e=>{dragging=true;lastX=e.clientX;lastY=e.clientY;});
+window.addEventListener('mouseup', ()=>dragging=false);
+window.addEventListener('mousemove', e=>{
+  if(!dragging) return;
+  camAz -= (e.clientX-lastX)*0.006;
+  camEl = Math.max(-1.4, Math.min(1.4, camEl + (e.clientY-lastY)*0.006));
+  lastX=e.clientX; lastY=e.clientY;
+});
+renderer.domElement.addEventListener('wheel', e=>{
+  e.preventDefault();
+  camDist = Math.max(0.08, Math.min(2.5, camDist * (1 + e.deltaY*0.001)));
+}, {passive:false});
+let touchLast=null;
+renderer.domElement.addEventListener('touchstart', e=>{ if(e.touches.length===1) touchLast={x:e.touches[0].clientX,y:e.touches[0].clientY}; });
+renderer.domElement.addEventListener('touchmove', e=>{
+  if(e.touches.length===1 && touchLast){
+    const dx=e.touches[0].clientX-touchLast.x, dy=e.touches[0].clientY-touchLast.y;
+    camAz -= dx*0.006; camEl = Math.max(-1.4, Math.min(1.4, camEl+dy*0.006));
+    touchLast={x:e.touches[0].clientX,y:e.touches[0].clientY};
+    e.preventDefault();
+  }
+}, {passive:false});
+
+/* world frame */
+scene.add(new THREE.AxesHelper(0.07));
+
+function makeAxes(len){
+  const ax = new THREE.AxesHelper(len);
+  ax.matrixAutoUpdate = false;
+  scene.add(ax);
+  return ax;
+}
+const axes1 = makeAxes(0.045);
+const axes2 = makeAxes(0.045);
+const meshAxes1 = makeAxes(0.022);
+const meshAxes2 = makeAxes(0.022);
+
+function makeArrow(color){
+  const a = new THREE.ArrowHelper(new THREE.Vector3(0,0,1), new THREE.Vector3(0,0,0), 0.05, color, 0.015, 0.008);
+  scene.add(a);
+  return a;
+}
+const arrow1 = makeArrow(0xd9a441);
+const arrow2 = makeArrow(0xd9a441);
+
+function makeSphere(color, r){
+  const m = new THREE.Mesh(new THREE.SphereGeometry(r,16,16), new THREE.MeshStandardMaterial({color, roughness:0.4}));
+  scene.add(m);
+  return m;
+}
+const joint1Dot = makeSphere(0xd9a441, 0.009);
+const joint2Dot = makeSphere(0x4fb3a9, 0.009);
+
+function makeMeshBox(){
+  const m = new THREE.Mesh(
+    new THREE.BoxGeometry(0.025,0.018,0.012),
+    new THREE.MeshStandardMaterial({color:0xa08ce0, transparent:true, opacity:0.55, roughness:0.5})
+  );
+  m.matrixAutoUpdate = false;
+  scene.add(m);
+  return m;
+}
+const meshBox1 = makeMeshBox();
+const meshBox2 = makeMeshBox();
+
+function makeDashedLine(){
+  const geo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3()]);
+  const mat = new THREE.LineDashedMaterial({color:0xa08ce0, dashSize:0.004, gapSize:0.003});
+  const line = new THREE.Line(geo, mat);
+  scene.add(line);
+  return line;
+}
+function updateDashedLine(line, p1, p2){
+  line.geometry.dispose();
+  line.geometry = new THREE.BufferGeometry().setFromPoints([p1,p2]);
+  line.computeLineDistances();
+}
+const offsetLine1 = makeDashedLine();
+const offsetLine2 = makeDashedLine();
+
+let bone1 = new THREE.Mesh(new THREE.CylinderGeometry(0.006,0.006,0.1,12), new THREE.MeshStandardMaterial({color:0x565f70, roughness:0.55}));
+let bone2 = new THREE.Mesh(new THREE.CylinderGeometry(0.006,0.006,0.1,12), new THREE.MeshStandardMaterial({color:0x565f70, roughness:0.55}));
+scene.add(bone1); scene.add(bone2);
+function updateBone(mesh,p1,p2,radius){
+  const dir = new THREE.Vector3().subVectors(p2,p1);
+  const len = Math.max(dir.length(), 0.0008);
+  mesh.geometry.dispose();
+  mesh.geometry = new THREE.CylinderGeometry(radius,radius,len,12);
+  mesh.position.copy(p1).addScaledVector(dir,0.5);
+  const up = new THREE.Vector3(0,1,0);
+  const ndir = dir.clone().normalize();
+  if(ndir.lengthSq()<1e-8) ndir.set(0,1,0);
+  mesh.quaternion.setFromUnitVectors(up, ndir);
+}
+
+function poseMatrix(o){
+  const q = new THREE.Quaternion().setFromEuler(new THREE.Euler(
+    THREE.MathUtils.degToRad(o.r), THREE.MathUtils.degToRad(o.p), THREE.MathUtils.degToRad(o.y), 'XYZ'
+  ));
+  return new THREE.Matrix4().compose(new THREE.Vector3(o.ox,o.oy,o.oz), q, new THREE.Vector3(1,1,1));
+}
+function axisRotation(o){
+  const v = new THREE.Vector3(o.ax,o.ay,o.az);
+  if(v.lengthSq()<1e-9) v.set(0,0,1); else v.normalize();
+  return new THREE.Matrix4().makeRotationAxis(v, THREE.MathUtils.degToRad(o.angle));
+}
+function posOf(m){ return new THREE.Vector3().setFromMatrixPosition(m); }
+function quatOf(m){ return new THREE.Quaternion().setFromRotationMatrix(m); }
+
+const readout = document.getElementById('readout');
+
+function render(){
+  // Joint 1: parent = base = identity
+  const jointFrame1 = poseMatrix(state.j1);
+  const childFrame1  = new THREE.Matrix4().multiplyMatrices(jointFrame1, axisRotation(state.j1)); // Link B frame, world
+
+  // Joint 2: relative to Link B
+  const jointFrame2 = new THREE.Matrix4().multiplyMatrices(childFrame1, poseMatrix(state.j2));
+  const childFrame2 = new THREE.Matrix4().multiplyMatrices(jointFrame2, axisRotation(state.j2));   // Link C frame, world
+
+  // Mesh frames: link frame * visual/collision origin
+  const meshFrame1 = new THREE.Matrix4().multiplyMatrices(childFrame1, poseMatrix(state.m1));
+  const meshFrame2 = new THREE.Matrix4().multiplyMatrices(childFrame2, poseMatrix(state.m2));
+
+  axes1.matrix.copy(childFrame1); axes1.matrixWorldNeedsUpdate = true;
+  axes2.matrix.copy(childFrame2); axes2.matrixWorldNeedsUpdate = true;
+  meshAxes1.matrix.copy(meshFrame1); meshAxes1.matrixWorldNeedsUpdate = true;
+  meshAxes2.matrix.copy(meshFrame2); meshAxes2.matrixWorldNeedsUpdate = true;
+  meshBox1.matrix.copy(meshFrame1); meshBox1.matrixWorldNeedsUpdate = true;
+  meshBox2.matrix.copy(meshFrame2); meshBox2.matrixWorldNeedsUpdate = true;
+
+  const p0 = new THREE.Vector3(0,0,0);
+  const p1t = posOf(jointFrame1);
+  const p1  = posOf(childFrame1);
+  const p2t = posOf(jointFrame2);
+  const p2  = posOf(childFrame2);
+  const pm1 = posOf(meshFrame1);
+  const pm2 = posOf(meshFrame2);
+
+  updateBone(bone1, p0, p1t, 0.006);
+  updateBone(bone2, p1, p2t, 0.006);
+  joint1Dot.position.copy(p1t);
+  joint2Dot.position.copy(p2t);
+  updateDashedLine(offsetLine1, p1, pm1);
+  updateDashedLine(offsetLine2, p2, pm2);
+
+  const ax1dir = new THREE.Vector3(state.j1.ax,state.j1.ay,state.j1.az);
+  if(ax1dir.lengthSq()<1e-9) ax1dir.set(0,0,1); else ax1dir.normalize();
+  ax1dir.applyQuaternion(quatOf(jointFrame1));
+  arrow1.position.copy(p1t); arrow1.setDirection(ax1dir);
+
+  const ax2dir = new THREE.Vector3(state.j2.ax,state.j2.ay,state.j2.az);
+  if(ax2dir.lengthSq()<1e-9) ax2dir.set(0,0,1); else ax2dir.normalize();
+  ax2dir.applyQuaternion(quatOf(jointFrame2));
+  arrow2.position.copy(p2t); arrow2.setDirection(ax2dir);
+
+  readout.innerHTML =
+    `<b>link B frame</b>   x=${p1t.x.toFixed(4)} y=${p1t.y.toFixed(4)} z=${p1t.z.toFixed(4)}<br>` +
+    `<b>link B mesh</b>    x=${pm1.x.toFixed(4)} y=${pm1.y.toFixed(4)} z=${pm1.z.toFixed(4)}<br>` +
+    `<b>link C frame</b>   x=${p2t.x.toFixed(4)} y=${p2t.y.toFixed(4)} z=${p2t.z.toFixed(4)}<br>` +
+    `<b>link C mesh</b>    x=${pm2.x.toFixed(4)} y=${pm2.y.toFixed(4)} z=${pm2.z.toFixed(4)}`;
+
+  updateCamera();
+  renderer.render(scene, camera);
+  requestAnimationFrame(render);
+}
+
+resize();
+requestAnimationFrame(render);
+</script>
+</body>
+</html>
